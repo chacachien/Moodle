@@ -29,121 +29,130 @@ require_once($CFG->libdir . '/filelib.php');
 require_once($CFG->dirroot . '/blocks/openai_chat/lib.php');
 
 global $DB, $PAGE;
+global $USER;
 
 // if (get_config('block_openai_chat', 'restrictusage') !== "0") {
 //     require_login();
 // }
 
-// if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-//     header("Location: $CFG->wwwroot");
-//     die();
-// }
+# URL LOCAL
+$url_root = "http://localhost:8000";
 
-$body = json_decode(file_get_contents('php://input'), true);
-$message = clean_param($body['message'], PARAM_NOTAGS);
-$history = clean_param_array($body['history'], PARAM_NOTAGS, true);
-$block_id = clean_param($body['blockId'], PARAM_INT, true);
-$thread_id = clean_param($body['threadId'], PARAM_NOTAGS, true);
+# URL HOST
+#$url_root = "https://moodle-va.onrender.com";
 
-// So that we're not leaking info to the client like API key, the block makes an API request including its ID
-// Then we can look up that specific block to pull out its config data
-$instance_record = $DB->get_record('block_instances', ['blockname' => 'openai_chat', 'id' => $block_id], '*');
-$instance = block_instance('openai_chat', $instance_record);
-
-# hmmmm
-
-if (!$instance) {
-    print_error('invalidblockinstance', 'error', $id);
-}
-
-$context = context::instance_by_id($instance_record->parentcontextid);
-if ($context->contextlevel == CONTEXT_COURSE) {
-    $course = get_course($context->instanceid);
-    $PAGE->set_course($course);
-} else {
-    $PAGE->set_context($context);
-}
-
-$block_settings = [];
-$setting_names = [
-    'sourceoftruth', 
-    'prompt',
-    'instructions',
-    'username', 
-    'assistantname', 
-    'apikey', 
-    'model', 
-    'temperature', 
-    'maxlength', 
-    'topp', 
-    'frequency', 
-    'presence',
-    'assistant'
-];
-// foreach ($setting_names as $setting) {
-//     if ($instance->config && property_exists($instance->config, $setting)) {
-//         $block_settings[$setting] = $instance->config->$setting ? $instance->config->$setting : "";
-//     } else {
-//         $block_settings[$setting] = "";
-//     }
-// }
-
-// $engine_class;
-// $model = get_config('block_openai_chat', 'model');
-// $api_type = get_config('block_openai_chat', 'type');
-// $engine_class = "\block_openai_chat\completion\\$api_type";
-
-// $completion = new $engine_class(...[$model, $message, $history, $block_settings, $thread_id]);
-
-// $response = $completion->create_completion($PAGE->context);
-// error_log('res: '.json_encode($response),0);
-
-$curlbody = [
-    "message" => $message,
-    "block_id" => $block_id,
-];
-
-$curl = curl_init("http://localhost:8000/v1/chat/");
-curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($curl, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ',
-    'Content-Type: application/json',
-]);
-curl_setopt($curl, CURLOPT_POST, true);
-curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($curlbody));
-
-$response = curl_exec($curl);
-$http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-curl_close($curl);
-
-if ($http_status === 422) {
-    // Handle 422 error
-    // You can get more details about the error from the response
-    echo "422 Error: Invalid data or missing parameters";
-} else {
-    // Handle successful response
-    $response = json_decode($response);
-    // Do something with the response
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
+    //header("Location: $CFG->wwwroot");
+    $body = json_decode(file_get_contents('php://input'), true);
+    $message = clean_param($body['message'], PARAM_NOTAGS);
+    // $history = clean_param_array($body['history'], PARAM_NOTAGS, true);
+    $block_id = clean_param($body['blockId'], PARAM_INT, true);
+    // $thread_id = clean_param($body['threadId'], PARAM_NOTAGS, true);
+    // // So that we're not leaking info to the client like API key, the block makes an API request including its ID
+    // // Then we can look up that specific block to pull out its config data
+    
+    $instance_record = $DB->get_record('block_instances', ['blockname' => 'openai_chat', 'id' => $block_id], '*');
+    $instance = block_instance('openai_chat', $instance_record);
+    error_log('USER id: '.$USER->id, 0);
+    
+    if (!$instance) {
+        error_log("THIS IS INVALID BLOCK", 0);
+        print_error('invalidblockinstance', 'error', $id);
+    }
+
+
+    // notice here
+
+    $context = context::instance_by_id($instance_record->parentcontextid);
+    if ($context->contextlevel == CONTEXT_COURSE) {
+        $course = get_course($context->instanceid);
+        $PAGE->set_course($course);
+    } else {
+        $PAGE->set_context($context);
+        //error_log($PAGE, 0);
+    }
+
+
+    // $block_settings = [];
+    // $setting_names = [
+    //     'sourceoftruth', 
+    //     'prompt',
+    //     'instructions',
+    //     'username', 
+    //     'assistantname', 
+    //     'apikey', 
+    //     'model', 
+    //     'temperature', 
+    //     'maxlength', 
+    //     'topp', 
+    //     'frequency', 
+    //     'presence',
+    //     'assistant'
+    // ];
+
+    $curlbody = [
+        "content" => $message,
+        "chatId" => $USER->id,
+        "role"=> 1
+    ];
+
+    $curl = curl_init($url_root."/api/v1/chat");
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ',
+        'Content-Type: application/json',
+    ]);
+    curl_setopt($curl, CURLOPT_POST, true);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($curlbody));
+
+    $response = curl_exec($curl);
+    $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    curl_close($curl);
+
+    if ($http_status === 422) {
+        // Handle 422 error
+        // You can get more details about the error from the response
+        echo "422 Error: Invalid data or missing parameters";
+    } else {
+        // Handle successful response
+        $response = json_decode($response);
+        // Do something with the response
+       
+    }
+    
+    // Use var_dump to inspect the contents of $response
+
+    $message_res = null;
+    if (property_exists($response, 'error')) {
+        $message_res = 'ERROR: ' . $response->error->message;
+        error_log("RESPONSE err: ".$message_res,0);
+    } else {
+        $message_res = $response->message;
+        error_log("RESPONSE suc: ".$message_res,0);
+    }
+    // Use var_dump to inspect the contents of $message
+    error_log($message_res, 0);
+
+    $final_response= [
+        "id" => property_exists($response, 'id') ? $response->id : 'error',
+        "message" => $message_res
+    ];
+    // Format the markdown of each completion message into HTML.
+    $final_response["message"] = format_text($final_response["message"], FORMAT_MARKDOWN, );
+    $final_response = json_encode($final_response);
+    error_log($final_response, 0);
+    echo $final_response;
 }
-
- // Use var_dump to inspect the contents of $response
-
-$message_res = null;
-if (property_exists($response, 'error')) {
-    $message_res = 'ERROR: ' . $response->error->message;
-} else {
-    $message_res = $response->choices[0]->message->content;
+else if($_SERVER['REQUEST_METHOD'] === 'DELETE'){
+    # get the param from url
+    error_log('delete is call', 0);
+    $block_id = required_param('block_id', PARAM_NOTAGS);
+    $curl = curl_init($url_root."/api/v1/chat/".$USER->id);
+    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($curl);
+    $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    curl_close($curl);
+    error_log('delete success',0);
 }
- // Use var_dump to inspect the contents of $message
-error_log($message_res, 0);
-
-$final_response= [
-    "id" => property_exists($response, 'id') ? $response->id : 'error',
-    "message" => $message_res
-];
-// Format the markdown of each completion message into HTML.
-$final_response["message"] = format_text($final_response["message"], FORMAT_MARKDOWN, ['context' => $context]);
-$final_response = json_encode($final_response);
-
-echo $final_response;

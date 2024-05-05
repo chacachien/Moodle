@@ -21,11 +21,13 @@
  * @copyright  2023 Bryce Yoder <me@bryceyoder.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+require_once($CFG->dirroot . '/webservice/lib.php');
 
 class block_openai_chat extends block_base {
     public function init() {
         // $this->title = get_string('openai_chat', 'block_openai_chat');
         $this->title = "Moodle Virtual Assistant";
+
     }
 
     public function has_config() {
@@ -42,39 +44,54 @@ class block_openai_chat extends block_base {
         }
     }
     public function get_history($blockId){
+        global $USER;
         $curl = new \curl();
-        $response = $curl->get("http://localhost:8000/v1/chat_history/".$blockId);
-        error_log("res st: ".$response->status,0);
-
-        if (property_exists($response, 'error')) {
-            $message = 'ERROR: ' . $response->error->message;
-        } else {
-
-            // Decode the JSON response
-            $response = json_decode($response);
-            
-            // Check if the response is valid JSON
-            if ($response !== null) {
-                // Return the decoded response
-                return $response;
+       
+        $response = $curl->get("http://localhost:8000/api/v1/chat?chatid=".$USER->id);
+        
+        if ($response){
+            error_log("res st: ".$response->status,0);
+            $token = optional_param('token',  0, PARAM_TEXT); 
+            $token = s(\core\session\manager::get_login_token());
+            error_log("token: ".$token, 0);
+            if (property_exists($response, 'error')) {
+                $message = 'ERROR: ' . $response->error->message;
             } else {
-                // Invalid JSON response
-                return "Invalid JSON response";
-            }
-        } 
+                // Decode the JSON response
+                $response = json_decode($response);
+                
+                // Check if the response is valid JSON
+                if ($response !== null) {
+                    // Return the decoded response
+                    return $response;
+                } else {
+                    // Invalid JSON response
+                    return [];
+                }
+            } 
+        } else{
+            return [];
+        }
+        
     }
     public function get_content() {
+
+
+
+        global $USER;
+
         if ($this->content !== null) {
             return $this->content;
         }
 
         // Send data to front end
-        $persistconvo = get_config('block_openai_chat', 'persistconvo');
+        // $persistconvo = get_config('block_openai_chat', 'persistconvo');
        
-        if (!empty($this->config)) {
-            $persistconvo = (property_exists($this->config, 'persistconvo') && get_config('block_openai_chat', 'allowinstancesettings')) ? $this->config->persistconvo : $persistconvo;
-        }
-        $history = $this->get_history($this->instance->id);
+        // if (!empty($this->config)) {
+        //     $persistconvo = (property_exists($this->config, 'persistconvo') && get_config('block_openai_chat', 'allowinstancesettings')) ? $this->config->persistconvo : $persistconvo;
+        // }
+        //$history = $this->get_history($this->instance->id);
+        $history = $this->get_history($USER->id);
         foreach ($history as $h) {
             // Access the properties of the $h object and concatenate them into a string
             $message = "History: ";
@@ -89,6 +106,7 @@ class block_openai_chat extends block_base {
         // -----------------------------
         $this->page->requires->js_call_amd('block_openai_chat/lib', 'init', [[
             'blockId' => $this->instance->id,
+            //'blockId' => $blockId->id,
             // 'api_type' => get_config('block_openai_chat', 'type') ? get_config('block_openai_chat', 'type') : 'chat',
             // 'persistConvo' => $persistconvo
             'history' => $history
@@ -108,16 +126,21 @@ class block_openai_chat extends block_base {
         }
 
         // First, fetch the global settings for these (and the defaults if not set)
-        $assistantname = get_config('block_openai_chat', 'assistantname') ? get_config('block_openai_chat', 'assistantname') : get_string('defaultassistantname', 'block_openai_chat');
-        $username = get_config('block_openai_chat', 'username') ? get_config('block_openai_chat', 'username') : get_string('defaultusername', 'block_openai_chat');
+        // $assistantname = get_config('block_openai_chat', 'assistantname') ? get_config('block_openai_chat', 'assistantname') : get_string('defaultassistantname', 'block_openai_chat');
+        // $username = get_config('block_openai_chat', 'username') ? get_config('block_openai_chat', 'username') : get_string('defaultusername', 'block_openai_chat');
 
-        // Then, override with local settings if available
-        if (!empty($this->config)) {
-            $assistantname = (property_exists($this->config, 'assistantname') && $this->config->assistantname) ? $this->config->assistantname : $assistantname;
-            $username = (property_exists($this->config, 'username') && $this->config->username) ? $this->config->username : $username;
-        }
-        $assistantname = format_string($assistantname, true, ['context' => $this->context]);
-        $username = format_string($username, true, ['context' => $this->context]);
+        // // Then, override with local settings if available
+        // if (!empty($this->config)) {
+        //     $assistantname = (property_exists($this->config, 'assistantname') && $this->config->assistantname) ? $this->config->assistantname : $assistantname;
+        //     $username = (property_exists($this->config, 'username') && $this->config->username) ? $this->config->username : $username;
+            
+        // }
+        // $assistantname = format_string($assistantname, true, ['context' => $this->context]);
+        // $username = format_string($username, true, ['context' => $this->context]);
+        
+
+        $assistantname = "Moodi";
+        $username = "User";
         error_log('user name is: '.$username, 0);
         $this->content = new stdClass;
         $this->content->text = '

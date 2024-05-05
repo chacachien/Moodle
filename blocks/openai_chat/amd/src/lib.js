@@ -1,54 +1,17 @@
 var questionString = 'Can I help u...'
 var errorString = 'An error occurred! Please try again later.'
-
+import * as Modal from 'core/modal_factory';
+import * as ModalEvents from 'core/modal_events';
 export const init = (data) => {
     const blockId = data['blockId']
     const api_type = data['api_type']
     const persistConvo = data['persistConvo']
     const history = data['history']
     console.log(`Blockid: ${blockId}; history: ${history[0]}`)
-    // Initialize local data storage if necessary
-    // If a thread ID exists for this block, make an API request to get existing messages
-    // if (api_type === 'assistant') {
-    // if (api_type === 'chat') {
-        chatData = localStorage.getItem("block_openai_chat_data")
-        console.log('chatdata[blockid]', chatData[blockId])
-        console.log('chatdatathread', chatData[chatData[blockId]['threadId']])
-        // if (chatData) {
-            // chatData = JSON.parse(chatData)
-
-
-            
-            // // if (chatData[blockId] && chatData[blockId]['threadId'] && persistConvo === "0") {
-            //     //fetch(`${M.cfg.wwwroot}/blocks/openai_chat/api/thread.php?thread_id=${chatData[blockId]['threadId']}`)
-            //     fetch(`${M.cfg.wwwroot}/blocks/openai_chat/api/thread.php?thread_id=1`)
-            //     .then(response => response.json())
-            //     .then(data => {
-            //         console.log("data: ", data)
-            //         for (let message of data) {
-            //             addToChatLog(message.role === 'user' ? 'user' : 'bot', message.message)
-            //         }
-            //     })
-            //     // Some sort of error in the API call. Probably the thread no longer exists, so lets reset it
-            //     .catch(error => {
-            //         chatData[blockId] = {}
-            //         localStorage.setItem("block_openai_chat_data", JSON.stringify(chatData));
-            //     })
-            // The block ID doesn't exist in the chat data object, so let's create it
-            // } else {
-            //     chatData[blockId] = {}
-            // }
-        // We don't even have a chat data object, so we'll create one
-        // } else {
-            //chatData = {[blockId]: {}}
-        
-        for (let message of history) {
-            console.log("His: ", message)
-            addToChatLog(message.send_by === 1 ? 'user' : 'bot', message.content)
-        }
-        // }
-        //localStorage.setItem("block_openai_chat_data", JSON.stringify(chatData));
-    // }
+    for (let message of history) {
+        console.log("His: ", message)
+        addToChatLog(message.role === 1 ? 'user' : 'bot', message.content)
+    }
 
     // Prevent sidebar from closing when osk pops up (hack for MDL-77957)
     window.addEventListener('resize', event => {
@@ -72,7 +35,26 @@ export const init = (data) => {
     })
 
     document.querySelector('.block_openai_chat #refresh').addEventListener('click', e => {
-        clearHistory(blockId)
+        // window.alert("Hello world!")
+        // clearHistory(blockId)
+        e.preventDefault();
+        Modal.create({
+        type: Modal.types.SAVE_CANCEL,
+        title: 'Confirmation before refresh',
+        body: '<p>Are you sure before you choose to refresh this chat?</p>',
+        }).then(modal=>{
+            modal.show();
+            modal.getRoot().on(ModalEvents.save, () => {
+                console.log("Click save")
+                clearHistory(blockId);
+                console.log("save successful!")
+                modal.hide();
+            });
+            modal.getRoot().on(ModalEvents.hidden, function() {
+                modal.destroy();
+            });
+        }).catch(Notification.exception);
+
     })
 
     require(['core/str'], function(str) {
@@ -122,15 +104,37 @@ const addToChatLog = (type, message) => {
  * Clears the thread ID from local storage and removes the messages from the UI in order to refresh the chat
  */
 const clearHistory = (blockId) => {
-    chatData = localStorage.getItem("block_openai_chat_data")
-    if (chatData) {
-        chatData = JSON.parse(chatData)
-        if (chatData[blockId]) {
-            chatData[blockId] = {}
-            localStorage.setItem("block_openai_chat_data", JSON.stringify(chatData));
+    // chatData = localStorage.getItem("block_openai_chat_data")
+    // if (chatData) {
+    //     chatData = JSON.parse(chatData)
+    //     if (chatData[blockId]) {
+    //         chatData[blockId] = {}
+    //         localStorage.setItem("block_openai_chat_data", JSON.stringify(chatData));
+    //     }
+    // }
+    
+    fetch(`${M.cfg.wwwroot}/blocks/openai_chat/api/completion.php?block_id=${blockId}`, {
+        method: 'DELETE',       
+    })
+    .then(response => {
+        console.log('clear his: ', response)
+        try{
+            if (!response.ok) {
+                throw Error(response.statusText)
+            } else {
+                document.querySelector('#openai_chat_log').innerHTML = ""
+                return
+            }
+        } catch{
+            console.log(error)
+            //addToChatLog('bot', data.error.message)
         }
-    }
-    document.querySelector('#openai_chat_log').innerHTML = ""
+    })
+    .catch(error => {
+        console.log(error)
+        document.querySelector('#openai_input').classList.add('error')
+        document.querySelector('#openai_input').placeholder = errorString
+    })
 }
 
 /**
@@ -178,7 +182,7 @@ const createCompletion = (message, blockId, api_type) => {
         let messageContainer = document.querySelector('#openai_chat_log')
         messageContainer.removeChild(messageContainer.lastElementChild)
         document.querySelector('.block_openai_chat #control_bar').classList.remove('disabled')
-
+        console.log("response: ",response)
         if (!response.ok) {
             throw Error(response.statusText)
         } else {
@@ -186,6 +190,7 @@ const createCompletion = (message, blockId, api_type) => {
         }
     })
     .then(data => {
+        console.log("data: ", data)
         try {
             addToChatLog('bot', data.message)
             if (data.thread_id) {
@@ -268,6 +273,5 @@ const buildTranscript = () => {
         }
         transcript.push({"user": user, "message": message.innerText})
     })
-
     return transcript
 }
