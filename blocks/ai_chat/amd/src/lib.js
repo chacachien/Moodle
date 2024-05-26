@@ -18,15 +18,15 @@ export const init = (data) => {
         event.stopImmediatePropagation();
     }, true);
 
-    document.querySelector('#openai_input').addEventListener('keyup', e => {
+    document.querySelector('#ai_input').addEventListener('keyup', e => {
         if (e.which === 13 && e.target.value !== "") {
             addToChatLog('user', e.target.value)
             createCompletion(e.target.value, blockId, api_type)
             e.target.value = ''
         }
     })
-    document.querySelector('.block_openai_chat #go').addEventListener('click', e => {
-        const input = document.querySelector('#openai_input')
+    document.querySelector('.block_ai_chat #go').addEventListener('click', e => {
+        const input = document.querySelector('#ai_input')
         if (input.value !== "") {
             addToChatLog('user', input.value)
             createCompletion(input.value, blockId, api_type)
@@ -34,7 +34,7 @@ export const init = (data) => {
         }
     })
 
-    document.querySelector('.block_openai_chat #refresh').addEventListener('click', e => {
+    document.querySelector('.block_ai_chat #refresh').addEventListener('click', e => {
         // window.alert("Hello world!")
         // clearHistory(blockId)
         e.preventDefault();
@@ -61,11 +61,11 @@ export const init = (data) => {
         var strings = [
             {
                 key: 'askaquestion',
-                component: 'block_openai_chat'
+                component: 'block_ai_chat'
             },
             {
                 key: 'erroroccurred',
-                component: 'block_openai_chat'
+                component: 'block_ai_chat'
             },
         ];
         str.get_strings(strings).then((results) => {
@@ -81,10 +81,10 @@ export const init = (data) => {
  * @param {string} message The text of the message to add
  */
 const addToChatLog = (type, message) => {
-    let messageContainer = document.querySelector('#openai_chat_log')
+    let messageContainer = document.querySelector('#ai_chat_log')
     
     const messageElem = document.createElement('div')
-    messageElem.classList.add('openai_message')
+    messageElem.classList.add('ai_message')
     for (let className of type.split(' ')) {
         messageElem.classList.add(className)
     }
@@ -104,16 +104,16 @@ const addToChatLog = (type, message) => {
  * Clears the thread ID from local storage and removes the messages from the UI in order to refresh the chat
  */
 const clearHistory = (blockId) => {
-    // chatData = localStorage.getItem("block_openai_chat_data")
+    // chatData = localStorage.getItem("block_ai_chat_data")
     // if (chatData) {
     //     chatData = JSON.parse(chatData)
     //     if (chatData[blockId]) {
     //         chatData[blockId] = {}
-    //         localStorage.setItem("block_openai_chat_data", JSON.stringify(chatData));
+    //         localStorage.setItem("block_ai_chat_data", JSON.stringify(chatData));
     //     }
     // }
     
-    fetch(`${M.cfg.wwwroot}/blocks/openai_chat/api/completion.php?block_id=${blockId}`, {
+    fetch(`${M.cfg.wwwroot}/blocks/ai_chat/api/completion.php?block_id=${blockId}`, {
         method: 'DELETE',       
     })
     .then(response => {
@@ -122,7 +122,7 @@ const clearHistory = (blockId) => {
             if (!response.ok) {
                 throw Error(response.statusText)
             } else {
-                document.querySelector('#openai_chat_log').innerHTML = ""
+                document.querySelector('#ai_chat_log').innerHTML = ""
                 return
             }
         } catch{
@@ -132,8 +132,8 @@ const clearHistory = (blockId) => {
     })
     .catch(error => {
         console.log(error)
-        document.querySelector('#openai_input').classList.add('error')
-        document.querySelector('#openai_input').placeholder = errorString
+        document.querySelector('#ai_input').classList.add('error')
+        document.querySelector('#ai_input').placeholder = errorString
     })
 }
 
@@ -149,7 +149,7 @@ const createCompletion = (message, blockId, api_type) => {
 
     // If the type is assistant, attempt to fetch a thread ID
     // if (api_type === 'assistant') {
-    //     chatData = localStorage.getItem("block_openai_chat_data")
+    //     chatData = localStorage.getItem("block_ai_chat_data")
     //     if (chatData) {
     //         chatData = JSON.parse(chatData)
     //         if (chatData[blockId]) {
@@ -164,12 +164,12 @@ const createCompletion = (message, blockId, api_type) => {
     const history = buildTranscript()
     console.log("buitranscript: ", history)
 
-    document.querySelector('.block_openai_chat #control_bar').classList.add('disabled')
-    document.querySelector('#openai_input').classList.remove('error')
-    document.querySelector('#openai_input').placeholder = questionString
-    document.querySelector('#openai_input').blur()
+    document.querySelector('.block_ai_chat #control_bar').classList.add('disabled')
+    document.querySelector('#ai_input').classList.remove('error')
+    document.querySelector('#ai_input').placeholder = questionString
+    document.querySelector('#ai_input').blur()
     addToChatLog('bot loading', '...');
-    fetch(`${M.cfg.wwwroot}/blocks/openai_chat/api/completion.php`, {
+    fetch(`${M.cfg.wwwroot}/blocks/ai_chat/api/completion.php`, {
         method: 'POST',
         body: JSON.stringify({
             message: message,
@@ -179,9 +179,9 @@ const createCompletion = (message, blockId, api_type) => {
         })
     })
     .then(response => {
-        let messageContainer = document.querySelector('#openai_chat_log')
+        let messageContainer = document.querySelector('#ai_chat_log')
         messageContainer.removeChild(messageContainer.lastElementChild)
-        document.querySelector('.block_openai_chat #control_bar').classList.remove('disabled')
+        document.querySelector('.block_ai_chat #control_bar').classList.remove('disabled')
         console.log("response: ",response)
         if (!response.ok) {
             throw Error(response.statusText)
@@ -195,21 +195,21 @@ const createCompletion = (message, blockId, api_type) => {
             addToChatLog('bot', data.message)
             if (data.thread_id) {
                 chatData[blockId]['threadId'] = data.thread_id
-                localStorage.setItem("block_openai_chat_data", JSON.stringify(chatData));
+                localStorage.setItem("block_ai_chat_data", JSON.stringify(chatData));
             }
         } catch (error) {
             console.log(error)
             addToChatLog('bot', data.error.message)
         }
-        document.querySelector('#openai_input').focus()
+        document.querySelector('#ai_input').focus()
     })
     .catch(error => {
         console.log(error)
-        document.querySelector('#openai_input').classList.add('error')
-        document.querySelector('#openai_input').placeholder = errorString
+        document.querySelector('#ai_input').classList.add('error')
+        document.querySelector('#ai_input').placeholder = errorString
     })
 
-    // fetch(`${M.cfg.wwwroot}/blocks/openai_chat/api/completion.php`, {
+    // fetch(`${M.cfg.wwwroot}/blocks/ai_chat/api/completion.php`, {
     //     method: 'POST',
     //     body: JSON.stringify({
     //         message: message,
@@ -238,20 +238,20 @@ const createCompletion = (message, blockId, api_type) => {
     //         addToChatLog('bot', data.message);
     //         if (data.thread_id) {
     //             chatData[blockId]['threadId'] = data.thread_id;
-    //             localStorage.setItem("block_openai_chat_data", JSON.stringify(chatData));
+    //             localStorage.setItem("block_ai_chat_data", JSON.stringify(chatData));
     //         }
     //     } catch (error) {
     //         // Handle JSON parsing error
     //         console.error('Error parsing JSON:', error);
     //         addToChatLog('bot', 'Error parsing JSON response');
     //     }
-    //     document.querySelector('#openai_input').focus();
+    //     document.querySelector('#ai_input').focus();
     // })
     // .catch(error => {
     //     // Handle fetch error
     //     console.error('Fetch error:', error);
-    //     document.querySelector('#openai_input').classList.add('error');
-    //     document.querySelector('#openai_input').placeholder = errorString;
+    //     document.querySelector('#ai_input').classList.add('error');
+    //     document.querySelector('#ai_input').placeholder = errorString;
     // });
     
 }
@@ -262,8 +262,8 @@ const createCompletion = (message, blockId, api_type) => {
  */
 const buildTranscript = () => {
     let transcript = []
-    document.querySelectorAll('.openai_message').forEach((message, index) => {
-        if (index === document.querySelectorAll('.openai_message').length - 1) {
+    document.querySelectorAll('.ai_message').forEach((message, index) => {
+        if (index === document.querySelectorAll('.ai_message').length - 1) {
             return
         }
 

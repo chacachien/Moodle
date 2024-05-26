@@ -15,26 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Privacy API Provider
+ * General plugin functions
  *
- * @package    block_openai_chat
- * @copyright  2022 Bryce Yoder <me@bryceyoder.com>
+ * @package    block_ai_chat
+ * @copyright  2024 Phat DUy
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace block_openai_chat\privacy;
+defined('MOODLE_INTERNAL') || die();
 
-class provider implements
-    // This plugin does not store any personal user data.
-    \core_privacy\local\metadata\null_provider {
-
-    /**
-     * Get the language string identifier with the component's language
-     * file to explain why this plugin stores no data.
-     *
-     * @return  string
-     */
-    public static function get_reason() : string {
-        return 'privacy:metadata';
+function get_type_to_display() {
+    $stored_type = get_config('block_ai_chat', 'type');
+    if ($stored_type) {
+        return $stored_type;
     }
+    
+    return 'chat';
 }
+
+

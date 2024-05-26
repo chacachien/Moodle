@@ -17,49 +17,54 @@
 /**
  * Block class
  *
- * @package    block_openai_chat
+ * @package    block_ai_chat
  * @copyright  2023 Bryce Yoder <me@bryceyoder.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 require_once($CFG->dirroot . '/webservice/lib.php');
 
-class block_openai_chat extends block_base {
-    public function init() {
-        // $this->title = get_string('openai_chat', 'block_openai_chat');
+class block_ai_chat extends block_base
+{
+    public function init()
+    {
+//         $this->title = get_string('ai_chat', 'block_ai_chat');
         $this->title = "Moodle Virtual Assistant";
-
     }
 
-    public function has_config() {
+    public function has_config()
+    {
         return true;
     }
 
-    function applicable_formats() {
+    function applicable_formats()
+    {
         return array('all' => true);
     }
 
-    public function specialization() {
+    public function specialization()
+    {
         if (!empty($this->config->title)) {
             $this->title = $this->config->title;
         }
     }
-    public function get_history($blockId){
+    public function get_history($blockId)
+    {
         global $USER;
         $curl = new \curl();
-       
-        $response = $curl->get("http://localhost:8000/api/v1/chat?chatid=".$USER->id);
-        
-        if ($response){
-            error_log("res st: ".$response->status,0);
-            $token = optional_param('token',  0, PARAM_TEXT); 
+
+        $response = $curl->get("http://localhost:8000/api/v1/chat?chatid=" . $USER->id);
+
+        if ($response) {
+            error_log("res st: " . $response->status, 0);
+            $token = optional_param('token',  0, PARAM_TEXT);
             $token = s(\core\session\manager::get_login_token());
-            error_log("token: ".$token, 0);
+            error_log("token: " . $token, 0);
             if (property_exists($response, 'error')) {
                 $message = 'ERROR: ' . $response->error->message;
             } else {
                 // Decode the JSON response
                 $response = json_decode($response);
-                
+
                 // Check if the response is valid JSON
                 if ($response !== null) {
                     // Return the decoded response
@@ -68,13 +73,13 @@ class block_openai_chat extends block_base {
                     // Invalid JSON response
                     return [];
                 }
-            } 
-        } else{
+            }
+        } else {
             return [];
         }
-        
     }
-    public function get_content() {
+    public function get_content()
+    {
 
 
 
@@ -85,10 +90,10 @@ class block_openai_chat extends block_base {
         }
 
         // Send data to front end
-        // $persistconvo = get_config('block_openai_chat', 'persistconvo');
-       
+        // $persistconvo = get_config('block_ai_chat', 'persistconvo');
+
         // if (!empty($this->config)) {
-        //     $persistconvo = (property_exists($this->config, 'persistconvo') && get_config('block_openai_chat', 'allowinstancesettings')) ? $this->config->persistconvo : $persistconvo;
+        //     $persistconvo = (property_exists($this->config, 'persistconvo') && get_config('block_ai_chat', 'allowinstancesettings')) ? $this->config->persistconvo : $persistconvo;
         // }
         //$history = $this->get_history($this->instance->id);
         $history = $this->get_history($USER->id);
@@ -104,10 +109,10 @@ class block_openai_chat extends block_base {
             error_log($message, 0);
         }
         // -----------------------------
-        $this->page->requires->js_call_amd('block_openai_chat/lib', 'init', [[
+        $this->page->requires->js_call_amd('block_ai_chat/lib', 'init', [[
             'blockId' => $this->instance->id,
             //'blockId' => $blockId->id,
-            // 'api_type' => get_config('block_openai_chat', 'type') ? get_config('block_openai_chat', 'type') : 'chat',
+            // 'api_type' => get_config('block_ai_chat', 'type') ? get_config('block_ai_chat', 'type') : 'chat',
             // 'persistConvo' => $persistconvo
             'history' => $history
         ]]);
@@ -116,32 +121,32 @@ class block_openai_chat extends block_base {
         $showlabelscss = '';
         if (!empty($this->config) && !$this->config->showlabels) {
             $showlabelscss = '
-                .openai_message:before {
+                .ai_message:before {
                     display: none;
                 }
-                .openai_message {
+                .ai_message {
                     margin-bottom: 0.5rem;
                 }
             ';
         }
 
         // First, fetch the global settings for these (and the defaults if not set)
-        // $assistantname = get_config('block_openai_chat', 'assistantname') ? get_config('block_openai_chat', 'assistantname') : get_string('defaultassistantname', 'block_openai_chat');
-        // $username = get_config('block_openai_chat', 'username') ? get_config('block_openai_chat', 'username') : get_string('defaultusername', 'block_openai_chat');
+        // $assistantname = get_config('block_ai_chat', 'assistantname') ? get_config('block_ai_chat', 'assistantname') : get_string('defaultassistantname', 'block_ai_chat');
+        // $username = get_config('block_ai_chat', 'username') ? get_config('block_ai_chat', 'username') : get_string('defaultusername', 'block_ai_chat');
 
         // // Then, override with local settings if available
         // if (!empty($this->config)) {
         //     $assistantname = (property_exists($this->config, 'assistantname') && $this->config->assistantname) ? $this->config->assistantname : $assistantname;
         //     $username = (property_exists($this->config, 'username') && $this->config->username) ? $this->config->username : $username;
-            
+
         // }
         // $assistantname = format_string($assistantname, true, ['context' => $this->context]);
         // $username = format_string($username, true, ['context' => $this->context]);
-        
+
 
         $assistantname = "Moodi";
         $username = "User";
-        error_log('user name is: '.$username, 0);
+        error_log('user name is: ' . $username, 0);
         $this->content = new stdClass;
         $this->content->text = '
             <script>
@@ -151,15 +156,15 @@ class block_openai_chat extends block_base {
 
             <style>
                 ' . $showlabelscss . '
-                .openai_message.user:before {
+                .ai_message.user:before {
                     content: "' . $username . '";
                 }
-                .openai_message.bot:before {
+                .ai_message.bot:before {
                     content: "' . $assistantname . '";
                 }
             </style>
 
-            <div id="openai_chat_log" role="log"></div>
+            <div id="ai_chat_log" role="log"></div>
         ';
 
         $arrow_img = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path fill="white" d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"/></svg>';
@@ -168,7 +173,7 @@ class block_openai_chat extends block_base {
         $this->content->footer =  '
             <div id="control_bar">
                 <div id="input_bar">
-                    <input id="openai_input" placeholder="' . get_string('askaquestion', 'block_openai_chat') .'" type="text" name="message" />
+                    <input id="ai_input" placeholder="' . 'Ask a question...' . '" type="text" name="message" />
                     <button title="Submit" id="go">' . $arrow_img . '</button>
                 </div>
                 <button title="New chat" id="refresh">' . $refresh_img . '</button>

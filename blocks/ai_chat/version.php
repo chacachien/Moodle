@@ -17,14 +17,14 @@
 /**
  * Version information
  *
- * @package    block_openai_chat
- * @copyright  2022 Bryce Yoder <me@bryceyoder.com>
+ * @package    block_ai_chat
+ * @copyright  2022 Phat Duy
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'block_openai_chat';
+$plugin->component = 'block_ai_chat';
 $plugin->version = 2024021400;
 $plugin->requires = 2022041600;
 $plugin->maturity = MATURITY_STABLE;

@@ -17,21 +17,21 @@
 /**
  * API endpoint for retrieving GPT completion
  *
- * @package    block_openai_chat
- * @copyright  2023 Bryce Yoder <me@bryceyoder.com>
+ * @package    block_ai_chat
+ * @copyright  2024 Phat Duy
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use \block_openai_chat\completion;
+use \block_ai_chat\completion;
 
 require_once('../../../config.php');
 require_once($CFG->libdir . '/filelib.php');
-require_once($CFG->dirroot . '/blocks/openai_chat/lib.php');
+require_once($CFG->dirroot . '/blocks/ai_chat/lib.php');
 
 global $DB, $PAGE;
 global $USER;
 
-// if (get_config('block_openai_chat', 'restrictusage') !== "0") {
+// if (get_config('block_ai_chat', 'restrictusage') !== "0") {
 //     require_login();
 // }
 
@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // // So that we're not leaking info to the client like API key, the block makes an API request including its ID
     // // Then we can look up that specific block to pull out its config data
     
-    $instance_record = $DB->get_record('block_instances', ['blockname' => 'openai_chat', 'id' => $block_id], '*');
-    $instance = block_instance('openai_chat', $instance_record);
+    $instance_record = $DB->get_record('block_instances', ['blockname' => 'ai_chat', 'id' => $block_id], '*');
+    $instance = block_instance('ai_chat', $instance_record);
     error_log('USER id: '.$USER->id, 0);
     
     if (!$instance) {

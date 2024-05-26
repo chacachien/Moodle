@@ -15,37 +15,37 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Define capabilities
+ * Plugin settings
  *
- * @package    block_openai_chat
- * @copyright  2022 Bryce Yoder <me@bryceyoder.com>
+ * @package    block_ai_chat
+ * @copyright  2024 Phat Duy
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$capabilities = array(
+if ($hassiteconfig && $ADMIN->fulltree) {
 
-    'block/openai_chat:myaddinstance' => array(
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
-        'archetypes' => array(
-            'user' => CAP_ALLOW
-        ),
+    require_once($CFG->dirroot .'/blocks/ai_chat/lib.php');
 
-        'clonepermissionsfrom' => 'moodle/my:manageblocks'
-    ),
+    
+    global $PAGE;
+    $PAGE->requires->js_call_amd('block_ai_chat/settings', 'init');
+    
+    $settings->add(new admin_setting_configtext(
+        'block_ai_chat/apikey',
+        'API Key',
+        'The API Key for your AI account or Azure API key',
+        '',
+        PARAM_TEXT
+    ));
 
-    'block/openai_chat:addinstance' => array(
-        'riskbitmask' => RISK_SPAM | RISK_XSS,
 
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_BLOCK,
-        'archetypes' => array(
-            'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW
-        ),
+//    $settings->add(new admin_setting_configcheckbox(
+//        'block_ai_chat/allowinstancesettings',
+//        get_string('allowinstancesettings', 'block_ai_chat'),
+//        get_string('allowinstancesettingsdesc', 'block_ai_chat'),
+//        0
+//    ));
 
-        'clonepermissionsfrom' => 'moodle/site:manageblocks'
-    ),
-);
+}
