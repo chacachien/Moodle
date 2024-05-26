@@ -101,8 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $curl = curl_init($url_root."/api/v1/chat");
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ',
+    $apikey = get_config('block_openai_chat', 'apikey'); # add here
+    error_log('api key: '.$apikey, 0);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, [    
+        'Authorization: Bearer '.$apikey,                 # add here
         'Content-Type: application/json',
     ]);
     curl_setopt($curl, CURLOPT_POST, true);

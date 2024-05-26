@@ -23,12 +23,15 @@
  */
 require_once($CFG->dirroot . '/webservice/lib.php');
 
+
 class block_openai_chat extends block_base {
     public function init() {
         // $this->title = get_string('openai_chat', 'block_openai_chat');
         $this->title = "Moodle Virtual Assistant";
+        $this->url_root = "http://localhost:8000";
 
     }
+
 
     public function has_config() {
         return true;
@@ -45,31 +48,56 @@ class block_openai_chat extends block_base {
     }
     public function get_history($blockId){
         global $USER;
-        $curl = new \curl();
-       
-        $response = $curl->get("http://localhost:8000/api/v1/chat?chatid=".$USER->id);
+        // $curl = new \curl();
         
-        if ($response){
-            error_log("res st: ".$response->status,0);
-            $token = optional_param('token',  0, PARAM_TEXT); 
-            $token = s(\core\session\manager::get_login_token());
-            error_log("token: ".$token, 0);
-            if (property_exists($response, 'error')) {
-                $message = 'ERROR: ' . $response->error->message;
-            } else {
-                // Decode the JSON response
-                $response = json_decode($response);
+       
+        #$response = $curl->get("http://localhost:8000/api/v1/chat?chatid=".$USER->id);
+
+
+    
+        $curl = curl_init($this->url_root."/api/v1/chat?chatid=".$USER->id);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "GET");
+
+        $apikey = get_config('block_openai_chat', 'apikey'); # add here
+        error_log('api key: '.$apikey, 0);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, [    
+            'Authorization: Bearer '.$apikey,                 # add here
+            'Content-Type: application/json',
+        ]);
+
+        $response = curl_exec($curl);
+        $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+        
+
+        try {
+            if ($response){
                 
-                // Check if the response is valid JSON
-                if ($response !== null) {
-                    // Return the decoded response
-                    return $response;
+                $token = optional_param('token',  0, PARAM_TEXT); 
+                $token = s(\core\session\manager::get_login_token());
+                error_log("token: ".$token, 0);
+                if (property_exists($response, 'error')) {
+                    $message = 'ERROR: ' . $response->error->message;
                 } else {
-                    // Invalid JSON response
-                    return [];
-                }
-            } 
-        } else{
+                    // Decode the JSON response
+                    $response = json_decode($response);
+                    
+                    // Check if the response is valid JSON
+                    if ($response !== null) {
+                        // Return the decoded response
+                        return $response;
+                    } else {
+                        // Invalid JSON response
+                        return [];
+                    }
+                } 
+            } else{
+                return [];
+            }
+            }
+        catch (Exception $e){
+            error_log("err".$e, 0);
             return [];
         }
         
@@ -92,6 +120,8 @@ class block_openai_chat extends block_base {
         // }
         //$history = $this->get_history($this->instance->id);
         $history = $this->get_history($USER->id);
+        error_log("".$history, 0);
+
         foreach ($history as $h) {
             // Access the properties of the $h object and concatenate them into a string
             $message = "History: ";
