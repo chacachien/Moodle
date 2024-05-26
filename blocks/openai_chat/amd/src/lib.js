@@ -90,7 +90,7 @@ const addToChatLog = (type, message) => {
     }
 
     const messageText = document.createElement('span')
-    messageText.innerHTML = message
+    messageText.innerText = message
     messageElem.append(messageText)
 
     messageContainer.append(messageElem)

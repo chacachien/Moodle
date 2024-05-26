@@ -63,16 +63,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     // notice here
-
+    $course_id = -1;
     $context = context::instance_by_id($instance_record->parentcontextid);
     if ($context->contextlevel == CONTEXT_COURSE) {
         $course = get_course($context->instanceid);
         $PAGE->set_course($course);
+        $course_id = $course->id;
+        error_log('COUUSE: '.$course->id,0);
     } else {
         $PAGE->set_context($context);
         //error_log($PAGE, 0);
     }
-
 
     // $block_settings = [];
     // $setting_names = [
@@ -94,7 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $curlbody = [
         "content" => $message,
         "chatId" => $USER->id,
-        "role"=> 1
+        "role"=> 1,
+        "courseId"=> $course_id
     ];
 
     $curl = curl_init($url_root."/api/v1/chat");
