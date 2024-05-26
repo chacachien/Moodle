@@ -7,7 +7,7 @@ export const init = (data) => {
     const history = data['history']
     for (let message of history) {
         console.log("His: ", message)
-        addToChatLog(message.role === 1 ? 'user' : 'bot', message.content)
+        addToChatLog(message.role === 1 ? 'user' : 'bot', message.content,1 )
     }
 
     // Prevent sidebar from closing when osk pops up (hack for MDL-77957)
@@ -17,7 +17,7 @@ export const init = (data) => {
 
     document.querySelector('#openai_input').addEventListener('keyup', e => {
         if (e.which === 13 && e.target.value !== "") {
-            addToChatLog('user', e.target.value)
+            addToChatLog('user', e.target.value, 0)
             createCompletion(e.target.value, blockId)
             e.target.value = ''
         }
@@ -25,7 +25,7 @@ export const init = (data) => {
     document.querySelector('.block_openai_chat #go').addEventListener('click', e => {
         const input = document.querySelector('#openai_input')
         if (input.value !== "") {
-            addToChatLog('user', input.value)
+            addToChatLog('user', input.value, 0)
             createCompletion(input.value, blockId)
             input.value = ''
         }
@@ -74,7 +74,8 @@ export const init = (data) => {
  * @param {string} type Which side of the UI the message should be on. Can be "user" or "bot"
  * @param {string} message The text of the message to add
  */
-const addToChatLog = (type, message) => {
+const addToChatLog = (type, message, his) => {
+    console.log("Message begin addtochatlog", message)
     let messageContainer = document.querySelector('#openai_chat_log')
     const messageElem = document.createElement('div')
     messageElem.classList.add('openai_message')
@@ -83,7 +84,13 @@ const addToChatLog = (type, message) => {
     }
 
     const messageText = document.createElement('span')
-    messageText.innerHTML = message
+    if (his){
+        messageText.innerText = message
+    }
+    else {
+        messageText.innerHTML = message
+    }
+
     messageElem.append(messageText)
     console.log(messageText)
 
@@ -131,7 +138,7 @@ const createCompletion = (message, blockId) => {
     document.querySelector('#openai_input').classList.remove('error')
     document.querySelector('#openai_input').placeholder = questionString
     document.querySelector('#openai_input').blur()
-    addToChatLog('bot loading', '...');
+    addToChatLog('bot loading', '...', 0);
     fetch(`${M.cfg.wwwroot}/blocks/openai_chat/api/completion.php`, {
         method: 'POST',
         body: JSON.stringify({
@@ -153,7 +160,7 @@ const createCompletion = (message, blockId) => {
     .then(data => {
         console.log("data: ", data)
         try {
-            addToChatLog('bot', data.message)
+            addToChatLog('bot', data.message, 0)
         } catch (error) {
             console.log(error)
         }
