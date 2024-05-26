@@ -4,10 +4,7 @@ import * as Modal from 'core/modal_factory';
 import * as ModalEvents from 'core/modal_events';
 export const init = (data) => {
     const blockId = data['blockId']
-    const api_type = data['api_type']
-    const persistConvo = data['persistConvo']
     const history = data['history']
-    console.log(`Blockid: ${blockId}; history: ${history[0]}`)
     for (let message of history) {
         console.log("His: ", message)
         addToChatLog(message.role === 1 ? 'user' : 'bot', message.content)
@@ -21,7 +18,7 @@ export const init = (data) => {
     document.querySelector('#openai_input').addEventListener('keyup', e => {
         if (e.which === 13 && e.target.value !== "") {
             addToChatLog('user', e.target.value)
-            createCompletion(e.target.value, blockId, api_type)
+            createCompletion(e.target.value, blockId)
             e.target.value = ''
         }
     })
@@ -29,14 +26,12 @@ export const init = (data) => {
         const input = document.querySelector('#openai_input')
         if (input.value !== "") {
             addToChatLog('user', input.value)
-            createCompletion(input.value, blockId, api_type)
+            createCompletion(input.value, blockId)
             input.value = ''
         }
     })
 
     document.querySelector('.block_openai_chat #refresh').addEventListener('click', e => {
-        // window.alert("Hello world!")
-        // clearHistory(blockId)
         e.preventDefault();
         Modal.create({
         type: Modal.types.SAVE_CANCEL,
@@ -54,7 +49,6 @@ export const init = (data) => {
                 modal.destroy();
             });
         }).catch(Notification.exception);
-
     })
 
     require(['core/str'], function(str) {
@@ -82,7 +76,6 @@ export const init = (data) => {
  */
 const addToChatLog = (type, message) => {
     let messageContainer = document.querySelector('#openai_chat_log')
-    
     const messageElem = document.createElement('div')
     messageElem.classList.add('openai_message')
     for (let className of type.split(' ')) {
@@ -92,6 +85,7 @@ const addToChatLog = (type, message) => {
     const messageText = document.createElement('span')
     messageText.innerHTML = message
     messageElem.append(messageText)
+    console.log(messageText)
 
     messageContainer.append(messageElem)
     if (messageText.offsetWidth) {
@@ -100,24 +94,13 @@ const addToChatLog = (type, message) => {
     messageContainer.scrollTop = messageContainer.scrollHeight
 }
 
-/**
- * Clears the thread ID from local storage and removes the messages from the UI in order to refresh the chat
- */
 const clearHistory = (blockId) => {
-    // chatData = localStorage.getItem("block_openai_chat_data")
-    // if (chatData) {
-    //     chatData = JSON.parse(chatData)
-    //     if (chatData[blockId]) {
-    //         chatData[blockId] = {}
-    //         localStorage.setItem("block_openai_chat_data", JSON.stringify(chatData));
-    //     }
-    // }
-    
+
     fetch(`${M.cfg.wwwroot}/blocks/openai_chat/api/completion.php?block_id=${blockId}`, {
         method: 'DELETE',       
     })
     .then(response => {
-        console.log('clear his: ', response)
+
         try{
             if (!response.ok) {
                 throw Error(response.statusText)
@@ -127,7 +110,6 @@ const clearHistory = (blockId) => {
             }
         } catch{
             console.log(error)
-            //addToChatLog('bot', data.error.message)
         }
     })
     .catch(error => {
@@ -143,13 +125,8 @@ const clearHistory = (blockId) => {
  * @param {int} blockId The ID of the block this message is being sent from -- used to override settings if necessary
  * @param {string} api_type "assistant" | "chat" The type of API to use
  */
-const createCompletion = (message, blockId, api_type) => {
-    let threadId = null
-    let chatData
-
-    // const history = buildTranscript()
-    // console.log("buitranscript: ", history)
-
+const createCompletion = (message, blockId) => {
+    
     document.querySelector('.block_openai_chat #control_bar').classList.add('disabled')
     document.querySelector('#openai_input').classList.remove('error')
     document.querySelector('#openai_input').placeholder = questionString
@@ -159,9 +136,7 @@ const createCompletion = (message, blockId, api_type) => {
         method: 'POST',
         body: JSON.stringify({
             message: message,
-            // history: history,
             blockId: blockId,
-            // threadId: threadId
         })
     })
     .then(response => {
@@ -179,7 +154,6 @@ const createCompletion = (message, blockId, api_type) => {
         console.log("data: ", data)
         try {
             addToChatLog('bot', data.message)
-            
         } catch (error) {
             console.log(error)
         }
@@ -196,18 +170,19 @@ const createCompletion = (message, blockId, api_type) => {
  * Using the existing messages in the chat history, create a string that can be used to aid completion
  * @return {JSONObject} A transcript of the conversation up to this point
  */
-const buildTranscript = () => {
-    let transcript = []
-    document.querySelectorAll('.openai_message').forEach((message, index) => {
-        if (index === document.querySelectorAll('.openai_message').length - 1) {
-            return
-        }
 
-        let user = userName
-        if (message.classList.contains('bot')) {
-            user = assistantName
-        }
-        transcript.push({"user": user, "message": message.innerText})
-    })
-    return transcript
-}
+// const buildTranscript = () => {
+//     let transcript = []
+//     document.querySelectorAll('.openai_message').forEach((message, index) => {
+//         if (index === document.querySelectorAll('.openai_message').length - 1) {
+//             return
+//         }
+
+//         let user = userName
+//         if (message.classList.contains('bot')) {
+//             user = assistantName
+//         }
+//         transcript.push({"user": user, "message": message.innerText})
+//     })
+//     return transcript
+// }
