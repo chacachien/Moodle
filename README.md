@@ -41,7 +41,7 @@ To install the chatbot plugin, follow these steps:
 1. Use the document of moodle to install LMS
 2. If the block doesn't automation install, go to the "block folder" then zip the "AI chat" and push it into LMS as a plugin.
 3. Config the token in the web service Moodle to use the chatbot.
-4. Run the backend Chatbot at this repo: 
+4. Run the backend Chatbot at this repo: [Chatbot backend](https://github.com/chacachien/Moodle_VirtualAssistant_BE)
 
 ## Usage
 
