@@ -29,6 +29,7 @@ class block_ai_chat extends block_base
     {
 //         $this->title = get_string('ai_chat', 'block_ai_chat');
         $this->title = "Moodle Virtual Assistant";
+        $this->url_root = "http://localhost:8000";
     }
 
     public function has_config()
@@ -50,38 +51,60 @@ class block_ai_chat extends block_base
     public function get_history($blockId)
     {
         global $USER;
-        $curl = new \curl();
+        // $curl = new \curl();
 
-        $response = $curl->get("http://localhost:8000/api/v1/chat?chatid=" . $USER->id);
 
-        if ($response) {
-            error_log("res st: " . $response->status, 0);
-            $token = optional_param('token',  0, PARAM_TEXT);
-            $token = s(\core\session\manager::get_login_token());
-            error_log("token: " . $token, 0);
-            if (property_exists($response, 'error')) {
-                $message = 'ERROR: ' . $response->error->message;
-            } else {
-                // Decode the JSON response
-                $response = json_decode($response);
+        #$response = $curl->get("http://localhost:8000/api/v1/chat?chatid=".$USER->id);
 
-                // Check if the response is valid JSON
-                if ($response !== null) {
-                    // Return the decoded response
-                    return $response;
+
+
+        $curl = curl_init($this->url_root . "/api/v1/chat?chatid=" . $USER->id);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "GET");
+
+        $apikey = get_config('block_ai_chat', 'apikey'); # add here
+        error_log('api key: '.$apikey, 0);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer '.$apikey,                 # add here
+            'Content-Type: application/json',
+        ]);
+
+        $response = curl_exec($curl);
+        $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+
+        try {
+            if ($response) {
+
+                $token = optional_param('token',  0, PARAM_TEXT);
+                $token = s(\core\session\manager::get_login_token());
+                error_log("token: " . $token, 0);
+                if (property_exists($response, 'error')) {
+                    $message = 'ERROR: ' . $response->error->message;
                 } else {
-                    // Invalid JSON response
-                    return [];
+                    // Decode the JSON response
+                    $response = json_decode($response);
+
+                    // Check if the response is valid JSON
+                    if ($response !== null) {
+                        // Return the decoded response
+                        return $response;
+                    } else {
+                        // Invalid JSON response
+                        return [];
+                    }
                 }
+            } else {
+                return [];
             }
-        } else {
+        } catch (Exception $e) {
+            error_log("err" . $e, 0);
             return [];
         }
     }
     public function get_content()
     {
-
-
 
         global $USER;
 
@@ -89,13 +112,7 @@ class block_ai_chat extends block_base
             return $this->content;
         }
 
-        // Send data to front end
-        // $persistconvo = get_config('block_ai_chat', 'persistconvo');
 
-        // if (!empty($this->config)) {
-        //     $persistconvo = (property_exists($this->config, 'persistconvo') && get_config('block_ai_chat', 'allowinstancesettings')) ? $this->config->persistconvo : $persistconvo;
-        // }
-        //$history = $this->get_history($this->instance->id);
         $history = $this->get_history($USER->id);
         foreach ($history as $h) {
             // Access the properties of the $h object and concatenate them into a string
@@ -111,13 +128,8 @@ class block_ai_chat extends block_base
         // -----------------------------
         $this->page->requires->js_call_amd('block_ai_chat/lib', 'init', [[
             'blockId' => $this->instance->id,
-            //'blockId' => $blockId->id,
-            // 'api_type' => get_config('block_ai_chat', 'type') ? get_config('block_ai_chat', 'type') : 'chat',
-            // 'persistConvo' => $persistconvo
             'history' => $history
         ]]);
-        // error_log("Persistconvo: ".$persistconvo, 0);
-        // Determine if name labels should be shown.
         $showlabelscss = '';
         if (!empty($this->config) && !$this->config->showlabels) {
             $showlabelscss = '
@@ -129,19 +141,6 @@ class block_ai_chat extends block_base
                 }
             ';
         }
-
-        // First, fetch the global settings for these (and the defaults if not set)
-        // $assistantname = get_config('block_ai_chat', 'assistantname') ? get_config('block_ai_chat', 'assistantname') : get_string('defaultassistantname', 'block_ai_chat');
-        // $username = get_config('block_ai_chat', 'username') ? get_config('block_ai_chat', 'username') : get_string('defaultusername', 'block_ai_chat');
-
-        // // Then, override with local settings if available
-        // if (!empty($this->config)) {
-        //     $assistantname = (property_exists($this->config, 'assistantname') && $this->config->assistantname) ? $this->config->assistantname : $assistantname;
-        //     $username = (property_exists($this->config, 'username') && $this->config->username) ? $this->config->username : $username;
-
-        // }
-        // $assistantname = format_string($assistantname, true, ['context' => $this->context]);
-        // $username = format_string($username, true, ['context' => $this->context]);
 
 
         $assistantname = "Moodi";

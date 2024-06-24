@@ -42,7 +42,7 @@ $url_root = "http://localhost:8000";
 #$url_root = "https://moodle-va.onrender.com";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     //header("Location: $CFG->wwwroot");
     $body = json_decode(file_get_contents('php://input'), true);
     $message = clean_param($body['message'], PARAM_NOTAGS);
@@ -51,11 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // $thread_id = clean_param($body['threadId'], PARAM_NOTAGS, true);
     // // So that we're not leaking info to the client like API key, the block makes an API request including its ID
     // // Then we can look up that specific block to pull out its config data
-    
+
     $instance_record = $DB->get_record('block_instances', ['blockname' => 'ai_chat', 'id' => $block_id], '*');
     $instance = block_instance('ai_chat', $instance_record);
     error_log('USER id: '.$USER->id, 0);
-    
+
     if (!$instance) {
         error_log("THIS IS INVALID BLOCK", 0);
         print_error('invalidblockinstance', 'error', $id);
@@ -77,17 +77,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // $block_settings = [];
     // $setting_names = [
-    //     'sourceoftruth', 
+    //     'sourceoftruth',
     //     'prompt',
     //     'instructions',
-    //     'username', 
-    //     'assistantname', 
-    //     'apikey', 
-    //     'model', 
-    //     'temperature', 
-    //     'maxlength', 
-    //     'topp', 
-    //     'frequency', 
+    //     'username',
+    //     'assistantname',
+    //     'apikey',
+    //     'model',
+    //     'temperature',
+    //     'maxlength',
+    //     'topp',
+    //     'frequency',
     //     'presence',
     //     'assistant'
     // ];
@@ -101,8 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $curl = curl_init($url_root."/api/v1/chat");
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    $apikey = get_config('block_ai_chat', 'apikey'); # add here
+    error_log('api key: ' . $apikey, 0);
     curl_setopt($curl, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ',
+        'Authorization: Bearer ' . $apikey,                 # add here
         'Content-Type: application/json',
     ]);
     curl_setopt($curl, CURLOPT_POST, true);
@@ -120,9 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle successful response
         $response = json_decode($response);
         // Do something with the response
-       
+
     }
-    
+
     // Use var_dump to inspect the contents of $response
 
     $message_res = null;
@@ -151,6 +153,12 @@ else if($_SERVER['REQUEST_METHOD'] === 'DELETE'){
     error_log('delete is call', 0);
     $block_id = required_param('block_id', PARAM_NOTAGS);
     $curl = curl_init($url_root."/api/v1/chat/".$USER->id);
+    $apikey = get_config('block_ai_chat', 'apikey'); # add here
+    error_log('api key: ' . $apikey, 0);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apikey,                 # add here
+        'Content-Type: application/json',
+    ]);
     curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     $response = curl_exec($curl);

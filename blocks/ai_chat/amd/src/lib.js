@@ -4,13 +4,11 @@ import * as Modal from 'core/modal_factory';
 import * as ModalEvents from 'core/modal_events';
 export const init = (data) => {
     const blockId = data['blockId']
-    const api_type = data['api_type']
-    const persistConvo = data['persistConvo']
     const history = data['history']
-    console.log(`Blockid: ${blockId}; history: ${history[0]}`)
+    console.log("hehehehe")
     for (let message of history) {
         console.log("His: ", message)
-        addToChatLog(message.role === 1 ? 'user' : 'bot', message.content)
+        addToChatLog(message.role === 1 ? 'user' : 'bot', message.content,1 )
     }
 
     // Prevent sidebar from closing when osk pops up (hack for MDL-77957)
@@ -20,23 +18,21 @@ export const init = (data) => {
 
     document.querySelector('#ai_input').addEventListener('keyup', e => {
         if (e.which === 13 && e.target.value !== "") {
-            addToChatLog('user', e.target.value)
-            createCompletion(e.target.value, blockId, api_type)
+            addToChatLog('user', e.target.value, 0)
+            createCompletion(e.target.value, blockId)
             e.target.value = ''
         }
     })
     document.querySelector('.block_ai_chat #go').addEventListener('click', e => {
         const input = document.querySelector('#ai_input')
         if (input.value !== "") {
-            addToChatLog('user', input.value)
-            createCompletion(input.value, blockId, api_type)
+            addToChatLog('user', input.value, 0)
+            createCompletion(input.value, blockId)
             input.value = ''
         }
     })
 
     document.querySelector('.block_ai_chat #refresh').addEventListener('click', e => {
-        // window.alert("Hello world!")
-        // clearHistory(blockId)
         e.preventDefault();
         Modal.create({
         type: Modal.types.SAVE_CANCEL,
@@ -54,7 +50,6 @@ export const init = (data) => {
                 modal.destroy();
             });
         }).catch(Notification.exception);
-
     })
 
     require(['core/str'], function(str) {
@@ -80,9 +75,9 @@ export const init = (data) => {
  * @param {string} type Which side of the UI the message should be on. Can be "user" or "bot"
  * @param {string} message The text of the message to add
  */
-const addToChatLog = (type, message) => {
+const addToChatLog = (type, message, his) => {
+    console.log("Message begin addtochatlog", message)
     let messageContainer = document.querySelector('#ai_chat_log')
-    
     const messageElem = document.createElement('div')
     messageElem.classList.add('ai_message')
     for (let className of type.split(' ')) {
@@ -90,8 +85,15 @@ const addToChatLog = (type, message) => {
     }
 
     const messageText = document.createElement('span')
-    messageText.innerText = message
+    if (his){
+        messageText.innerText = message
+    }
+    else {
+        messageText.innerHTML = message
+    }
+
     messageElem.append(messageText)
+    console.log(messageText)
 
     messageContainer.append(messageElem)
     if (messageText.offsetWidth) {
@@ -100,24 +102,13 @@ const addToChatLog = (type, message) => {
     messageContainer.scrollTop = messageContainer.scrollHeight
 }
 
-/**
- * Clears the thread ID from local storage and removes the messages from the UI in order to refresh the chat
- */
 const clearHistory = (blockId) => {
-    // chatData = localStorage.getItem("block_ai_chat_data")
-    // if (chatData) {
-    //     chatData = JSON.parse(chatData)
-    //     if (chatData[blockId]) {
-    //         chatData[blockId] = {}
-    //         localStorage.setItem("block_ai_chat_data", JSON.stringify(chatData));
-    //     }
-    // }
-    
+
     fetch(`${M.cfg.wwwroot}/blocks/ai_chat/api/completion.php?block_id=${blockId}`, {
         method: 'DELETE',       
     })
     .then(response => {
-        console.log('clear his: ', response)
+
         try{
             if (!response.ok) {
                 throw Error(response.statusText)
@@ -127,7 +118,6 @@ const clearHistory = (blockId) => {
             }
         } catch{
             console.log(error)
-            //addToChatLog('bot', data.error.message)
         }
     })
     .catch(error => {
@@ -143,39 +133,18 @@ const clearHistory = (blockId) => {
  * @param {int} blockId The ID of the block this message is being sent from -- used to override settings if necessary
  * @param {string} api_type "assistant" | "chat" The type of API to use
  */
-const createCompletion = (message, blockId, api_type) => {
-    let threadId = null
-    let chatData
-
-    // If the type is assistant, attempt to fetch a thread ID
-    // if (api_type === 'assistant') {
-    //     chatData = localStorage.getItem("block_ai_chat_data")
-    //     if (chatData) {
-    //         chatData = JSON.parse(chatData)
-    //         if (chatData[blockId]) {
-    //             threadId = chatData[blockId]['threadId'] || null
-    //         }
-    //     } else {
-    //         // create the chat data item if necessary
-    //         chatData = {[blockId]: {}}
-    //     }
-    // }  
-
-    const history = buildTranscript()
-    console.log("buitranscript: ", history)
-
+const createCompletion = (message, blockId) => {
+    
     document.querySelector('.block_ai_chat #control_bar').classList.add('disabled')
     document.querySelector('#ai_input').classList.remove('error')
     document.querySelector('#ai_input').placeholder = questionString
     document.querySelector('#ai_input').blur()
-    addToChatLog('bot loading', '...');
+    addToChatLog('bot loading', '...', 0);
     fetch(`${M.cfg.wwwroot}/blocks/ai_chat/api/completion.php`, {
         method: 'POST',
         body: JSON.stringify({
             message: message,
-            history: history,
             blockId: blockId,
-            threadId: threadId
         })
     })
     .then(response => {
@@ -192,67 +161,16 @@ const createCompletion = (message, blockId, api_type) => {
     .then(data => {
         console.log("data: ", data)
         try {
-            addToChatLog('bot', data.message)
-            if (data.thread_id) {
-                chatData[blockId]['threadId'] = data.thread_id
-                localStorage.setItem("block_ai_chat_data", JSON.stringify(chatData));
-            }
+            addToChatLog('bot', data.message, 0)
         } catch (error) {
             console.log(error)
-            addToChatLog('bot', data.error.message)
         }
         document.querySelector('#ai_input').focus()
     })
     .catch(error => {
-        console.log(error)
         document.querySelector('#ai_input').classList.add('error')
         document.querySelector('#ai_input').placeholder = errorString
     })
-
-    // fetch(`${M.cfg.wwwroot}/blocks/ai_chat/api/completion.php`, {
-    //     method: 'POST',
-    //     body: JSON.stringify({
-    //         message: message,
-    //         history: history,
-    //         blockId: blockId,
-    //         threadId: threadId
-    //     })
-    // })
-    // .then(response => {
-    //     // Check if the response is successful
-    //     console.log('res:', response)
-    //     if (!response.ok) {
-    //         throw new Error(`HTTP error! Status: ${response.status}`);
-    //     }
-    //     // Convert response to text
-    //     return response.text();
-    // })
-    // .then(responseText => {
-    //     console.log('res_text:', responseText)
-    //     // Trim the response string to remove leading/trailing whitespace
-    //     const trimmedResponse = responseText.trim();
-    //     try {
-    //         // Parse the trimmed response as JSON
-    //         const data = JSON.parse(trimmedResponse);
-    //         // Handle the parsed JSON data
-    //         addToChatLog('bot', data.message);
-    //         if (data.thread_id) {
-    //             chatData[blockId]['threadId'] = data.thread_id;
-    //             localStorage.setItem("block_ai_chat_data", JSON.stringify(chatData));
-    //         }
-    //     } catch (error) {
-    //         // Handle JSON parsing error
-    //         console.error('Error parsing JSON:', error);
-    //         addToChatLog('bot', 'Error parsing JSON response');
-    //     }
-    //     document.querySelector('#ai_input').focus();
-    // })
-    // .catch(error => {
-    //     // Handle fetch error
-    //     console.error('Fetch error:', error);
-    //     document.querySelector('#ai_input').classList.add('error');
-    //     document.querySelector('#ai_input').placeholder = errorString;
-    // });
     
 }
 
@@ -260,18 +178,19 @@ const createCompletion = (message, blockId, api_type) => {
  * Using the existing messages in the chat history, create a string that can be used to aid completion
  * @return {JSONObject} A transcript of the conversation up to this point
  */
-const buildTranscript = () => {
-    let transcript = []
-    document.querySelectorAll('.ai_message').forEach((message, index) => {
-        if (index === document.querySelectorAll('.ai_message').length - 1) {
-            return
-        }
 
-        let user = userName
-        if (message.classList.contains('bot')) {
-            user = assistantName
-        }
-        transcript.push({"user": user, "message": message.innerText})
-    })
-    return transcript
-}
+// const buildTranscript = () => {
+//     let transcript = []
+//     document.querySelectorAll('.ai_message').forEach((message, index) => {
+//         if (index === document.querySelectorAll('.ai_message').length - 1) {
+//             return
+//         }
+
+//         let user = userName
+//         if (message.classList.contains('bot')) {
+//             user = assistantName
+//         }
+//         transcript.push({"user": user, "message": message.innerText})
+//     })
+//     return transcript
+// }
